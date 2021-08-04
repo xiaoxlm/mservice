@@ -18,7 +18,9 @@ package v1
 
 import (
 	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"r.kubebuilder.io/pkg/components"
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
@@ -26,22 +28,23 @@ import (
 
 // MServiceSpec defines the desired state of MService
 type MServiceSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
+	Replicas *int32 `json:"replicas,omitempty"`
 
-	// Foo is an example field of MService. Edit mservice_types.go to remove/update
-	Foo string `json:"foo,omitempty"`
+	Ingresses      []components.MIngress `json:"ingresses,omitempty"`
+	Ports          components.MPorts    `json:"ports,omitempty"`
+	corev1.PodSpec `json:",inline"`
 }
 
 // MServiceStatus defines the observed state of MService
 type MServiceStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
-	ServiceExist string `json:"serviceExist,omitempty"`
-	IngressExist string `json:"ingressExist,omitempty"`
-	DeploymentStage string `json:"deploymentStage,omitempty"`
-	DeploymentComments string `json:"deploymentComments,omitempty"`
+	ServiceExist            string `json:"serviceExist,omitempty"`
+	IngressExist            string `json:"ingressExist,omitempty"`
+	DeploymentStage         string `json:"deploymentStage,omitempty"`
+	DeploymentComments      string `json:"deploymentComments,omitempty"`
 	appsv1.DeploymentStatus `json:",inline"`
+	//appsv1.DeploymentSpec
 }
 
 //+kubebuilder:object:root=true

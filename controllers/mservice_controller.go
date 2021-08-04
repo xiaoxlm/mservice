@@ -36,6 +36,8 @@ type MServiceReconciler struct {
 //+kubebuilder:rbac:groups=test.r.kubebuilder.io,resources=mservices,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=test.r.kubebuilder.io,resources=mservices/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=test.r.kubebuilder.io,resources=mservices/finalizers,verbs=update
+//+kubebuilder:rbac:groups=test.r.kubebuilder.io,resources=deployment,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=test.r.kubebuilder.io,resources=deployment/status,verbs=get
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -49,6 +51,14 @@ type MServiceReconciler struct {
 func (r *MServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	r.Log = r.Log.WithValues("mservice", req.NamespacedName)
 	// your logic here
+	var msvc testv1.MService
+	if err := r.Get(ctx, req.NamespacedName, &msvc); err != nil {
+		r.Log.Error(err, "unable to fetch MService")
+		return ctrl.Result{}, client.IgnoreNotFound(err)
+	}
+
+	// create
+	// status update
 
 	return ctrl.Result{}, nil
 }
@@ -58,4 +68,15 @@ func (r *MServiceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&testv1.MService{}).
 		Complete(r)
+}
+
+func (r *MServiceReconciler) applyMService(ctx context.Context) {
+	// apply ingress
+	// apply service
+	// apply deployment
+	// apply secret
+}
+
+func (r *MServiceReconciler) applySecret(ctx context.Context) error {
+	return nil
 }
