@@ -8,53 +8,51 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-type MPorts []MPort
-
-type MService struct {
-	Ports []MPort `json:"ports,omitempty"`
-}
-
 type MPort struct {
 	AppProtocol   string
-	Port          uint16
+	Port          int32
 	IsNodePort    bool
-	ContainerPort uint16
-	Protocol      string
+	TargetPort uint16
+	Protocol      corev1.Protocol
 }
 
+type MPorts []*MPort
 
-func (mp *MPort) Convert(meta *metav1.ObjectMeta) client.Object {
+
+func (mp *MPorts) Convert(meta *metav1.ObjectMeta) client.Object {
 	s := new(corev1.Service)
 	s.ObjectMeta = *meta
-
+	s.Spec = *mp.toServiceSpec()
+	s.Spec.Selector = map[string]string{
+		"app": s.ObjectMeta.Name,
+	}
 	return s
 }
 
-func (*MPort) toServiceSpec() *corev1.ServiceSpec {
+func (mp *MPorts) toServiceSpec() *corev1.ServiceSpec {
 	serviceSpec := new(corev1.ServiceSpec)
 	serviceSpec.Type = corev1.ServiceTypeClusterIP
 
 
-	for _, port := range s.Spec.Ports {
-		servicePort := v1.ServicePort{}
+	for _, port := range *mp {
+		servicePort := corev1.ServicePort{}
 
 		appProtocol := port.AppProtocol
-
 		if appProtocol == "" {
 			appProtocol = "http"
 		}
 
 		servicePort.Name = fmt.Sprintf("%s-%d", appProtocol, port.Port)
-		servicePort.Port = int32(port.Port)
-		servicePort.TargetPort = intstr.FromInt(int(port.ContainerPort))
+		servicePort.Port = port.Port
+		servicePort.TargetPort = intstr.FromInt(int(port.TargetPort))
 
 		if port.IsNodePort {
-			serviceSpec.Type = v1.ServiceTypeNodePort
+			serviceSpec.Type = corev1.ServiceTypeNodePort
 			servicePort.Name = "np-" + servicePort.Name
 			servicePort.NodePort = int32(port.Port)
 		}
 
-		servicePort.Protocol = toProtocol(port.Protocol)
+		servicePort.Protocol = port.Protocol
 		serviceSpec.Ports = append(serviceSpec.Ports, servicePort)
 	}
 
