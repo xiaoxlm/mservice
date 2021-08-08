@@ -6,5 +6,5 @@ import (
 )
 
 type ISelfResource interface {
-	Convert(meta *metav1.ObjectMeta) client.Object
+	Convert(meta *metav1.ObjectMeta, labels, annotations map[string]string) client.Object
 }

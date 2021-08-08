@@ -18,7 +18,6 @@ package v1
 
 import (
 	appsv1 "k8s.io/api/apps/v1"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"r.kubebuilder.io/pkg/components"
 )
@@ -28,11 +27,11 @@ import (
 
 // MServiceSpec defines the desired state of MService
 type MServiceSpec struct {
-	Replicas *int32 `json:"replicas,omitempty"`
 
-	Ingresses      []components.MIngress `json:"ingresses,omitempty"`
+	components.MDeployment `json:",inline"`
+
+	Ingress      components.MIngress `json:"ingress,omitempty"`
 	Ports          components.MPorts    `json:"ports,omitempty"`
-	corev1.PodSpec `json:",inline"`
 }
 
 // MServiceStatus defines the observed state of MService

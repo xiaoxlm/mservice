@@ -1,10 +1,17 @@
 package components
 
-import "strings"
+import (
+	appv1 "k8s.io/api/apps/v1"
+	"strings"
+)
 
 type Strategy struct {
 	Type  string
 	RollingUpdateConfig map[string]string
+}
+
+func (mp *Strategy) Convert() *appv1.DeploymentStrategy {
+	return new(appv1.DeploymentStrategy)
 }
 
 // RollingUpdate:maxUnavailable=25%,maxSurge=25%

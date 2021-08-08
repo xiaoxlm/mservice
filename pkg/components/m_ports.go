@@ -19,7 +19,7 @@ type MPort struct {
 type MPorts []*MPort
 
 
-func (mp *MPorts) Convert(meta *metav1.ObjectMeta) client.Object {
+func (mp *MPorts) Convert(meta *metav1.ObjectMeta, labels, annotations map[string]string) client.Object {
 	s := new(corev1.Service)
 	s.ObjectMeta = *meta
 	s.Spec = *mp.toServiceSpec()

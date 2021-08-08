@@ -1,20 +1,42 @@
 package components
 
 import (
-	networkingv1 "k8s.io/api/networking/v1"
+	//networking "k8s.io/api/networking/v1"
+	networking "k8s.io/api/extensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-type MIngress struct {
+type MIngressSpec struct {
 	Scheme string
 	Host   string
 	Path   string
 	Port   uint16
 }
 
-func (*MIngress) Convert(meta *metav1.ObjectMeta) client.Object {
-	return new(networkingv1.Ingress)
+type MIngress []*MIngressSpec
+
+func (mi *MIngress) Convert(meta *metav1.ObjectMeta, labels, annotations map[string]string) client.Object {
+
+	ingress := new(networking.Ingress)
+	ingress.ObjectMeta = *meta
+	ingress.SetLabels(labels)
+	ingress.SetAnnotations(annotations)
+
+	for _, i := range *mi {
+		rule := networking.IngressRule{}
+		rule.Host = i.Host
+
+		path := networking.HTTPIngressPath{}
+		path.Path = i.Path
+		path.Backend.ServiceName = ingress.Name
+		path.Backend.ServicePort = intstr.FromInt(int(i.Port))
+		rule.IngressRuleValue.HTTP.Paths = []networking.HTTPIngressPath{path}
+
+		ingress.Spec.Rules = append(ingress.Spec.Rules, rule)
+	}
+	return ingress
 }
 
 //func (mi MIngress) String() string {
