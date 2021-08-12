@@ -4,6 +4,7 @@ import (
 	"fmt"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -19,14 +20,14 @@ type MPort struct {
 type MPorts []*MPort
 
 
-func (mp *MPorts) Convert(meta *metav1.ObjectMeta, labels, annotations map[string]string) client.Object {
+func (mp *MPorts) Convert(meta *metav1.ObjectMeta, labels, annotations map[string]string) (client.Object, schema.GroupVersionKind) {
 	s := new(corev1.Service)
 	s.ObjectMeta = *meta
 	s.Spec = *mp.toServiceSpec()
 	s.Spec.Selector = map[string]string{
 		"app": s.ObjectMeta.Name,
 	}
-	return s
+	return s, s.GroupVersionKind()
 }
 
 func (mp *MPorts) toServiceSpec() *corev1.ServiceSpec {

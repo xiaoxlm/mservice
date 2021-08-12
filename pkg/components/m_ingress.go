@@ -4,6 +4,7 @@ import (
 	//networking "k8s.io/api/networking/v1"
 	networking "k8s.io/api/extensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -17,7 +18,7 @@ type MIngressSpec struct {
 
 type MIngress []*MIngressSpec
 
-func (mi *MIngress) Convert(meta *metav1.ObjectMeta, labels, annotations map[string]string) client.Object {
+func (mi *MIngress) Convert(meta *metav1.ObjectMeta, labels, annotations map[string]string) (client.Object, schema.GroupVersionKind) {
 
 	ingress := new(networking.Ingress)
 	ingress.ObjectMeta = *meta
@@ -36,7 +37,7 @@ func (mi *MIngress) Convert(meta *metav1.ObjectMeta, labels, annotations map[str
 
 		ingress.Spec.Rules = append(ingress.Spec.Rules, rule)
 	}
-	return ingress
+	return ingress, ingress.GroupVersionKind()
 }
 
 //func (mi MIngress) String() string {

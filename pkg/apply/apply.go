@@ -15,7 +15,7 @@ func setNamespace(o metav1.Object, namespace string) {
 }
 
 func Action(ctx context.Context, c client.Client, namespace string, applyObject client.Object) error {
-	applyObject.SetNamespace(namespace)
+	//applyObject.SetNamespace(namespace)
 	currentObject, err := components.GetCurrentObject(applyObject)
 	if err != nil {
 		return err

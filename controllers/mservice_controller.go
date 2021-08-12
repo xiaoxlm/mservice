@@ -20,8 +20,11 @@ import (
 	"context"
 	"fmt"
 	"github.com/go-logr/logr"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"r.kubebuilder.io/pkg/apply"
+	"r.kubebuilder.io/pkg/components"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -76,16 +79,16 @@ func (r *MServiceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 }
 
 func (r *MServiceReconciler) apply(ctx context.Context, msvc *testv1.MService) error {
-	objects := convert(msvc)
+	objectWithGVKs := convert(msvc)
 
-	if len(objects) < 1 {
+	if len(objectWithGVKs) < 1 {
 		return fmt.Errorf("objects is empty")
 	}
 
 	var errs []error
 
-	for _, o := range objects {
-		if err := apply.Action(ctx, r.Client, o.GetNamespace(), o); err != nil {
+	for _, o := range objectWithGVKs {
+		if err := apply.Action(ctx, r.Client, o.Object.GetNamespace(), o.Object); err != nil {
 			errs = append(errs, err)
 		}
 	}
@@ -102,26 +105,47 @@ func (r *MServiceReconciler) apply(ctx context.Context, msvc *testv1.MService) e
 }
 
 func (r *MServiceReconciler) updateStatus(ctx context.Context, msvc *testv1.MService) error {
-	//objects := convert(msvc)
+	objectWithGVKs := convert(msvc)
+
+	for _, o := range objectWithGVKs {
+		currentObject, err := components.GetCurrentObject(o.Object)
+		if err != nil {
+			return err
+		}
+
+		if err := r.Client.Get(ctx, client.ObjectKeyFromObject(o.Object), currentObject); err != nil {
+			if apierrors.IsNotFound(err) {
+				return fmt.Errorf("%v not found", o.GVK)
+			}
+		}
+	}
+
 	return nil
 }
 
-func convert(msvc *testv1.MService) []client.Object {
-	var ret []client.Object
-
-	// apply ingress
-	ingress := msvc.Spec.Ingress.Convert(&msvc.ObjectMeta, msvc.GetLabels(), msvc.GetAnnotations())
-	// apply service
-	service := msvc.Spec.Ports.Convert(&msvc.ObjectMeta, msvc.GetLabels(), msvc.GetAnnotations())
-	// apply deployment
-	deployment := msvc.Spec.MDeployment.Convert(&msvc.ObjectMeta, msvc.GetLabels(), msvc.GetAnnotations())
-	// apply secret
-	secret := msvc.Spec.Secret.Convert(&msvc.ObjectMeta, msvc.GetLabels(), msvc.GetAnnotations())
-
-	ret = append(ret, ingress, service, deployment, secret)
-
-	return ret
+type ObjectWithGVK struct {
+	Object client.Object
+	GVK schema.GroupVersionKind
 }
 
+func convert(msvc *testv1.MService) []ObjectWithGVK {
+	//var ret []ObjectWithGVK
+
+	formatObjectWithGVK := func(resources ...components.ISelfResource) []ObjectWithGVK {
+		var ret []ObjectWithGVK
+		for _, r := range resources {
+			o, gvk := r.Convert(&msvc.ObjectMeta, msvc.GetLabels(), msvc.GetAnnotations())
+
+			ret = append(ret, ObjectWithGVK{
+				Object: o,
+				GVK: gvk,
+			})
+		}
+
+		return ret
+	}
+
+	return formatObjectWithGVK(msvc.Spec.Ingress, msvc.Spec.Ports, &msvc.Spec.MDeployment, msvc.Spec.Secret)
+}
 
 
