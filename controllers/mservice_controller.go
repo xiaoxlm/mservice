@@ -101,6 +101,11 @@ func (r *MServiceReconciler) apply(ctx context.Context, msvc *testv1.MService) e
 	return nil
 }
 
+func (r *MServiceReconciler) updateStatus(ctx context.Context, msvc *testv1.MService) error {
+	//objects := convert(msvc)
+	return nil
+}
+
 func convert(msvc *testv1.MService) []client.Object {
 	var ret []client.Object
 

@@ -3,9 +3,9 @@ package apply
 import (
 	"context"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"r.kubebuilder.io/pkg/components"
 	"r.kubebuilder.io/pkg/utils"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -14,18 +14,9 @@ func setNamespace(o metav1.Object, namespace string) {
 	o.SetNamespace(namespace)
 }
 
-func GetCurrentObject(co client.Object) (client.Object, error) {
-	copyCO := co.DeepCopyObject()
-	current, err := meta.Accessor(copyCO)
-	if err != nil {
-		return nil, err
-	}
-	return current.(client.Object), nil
-}
-
 func Action(ctx context.Context, c client.Client, namespace string, applyObject client.Object) error {
 	applyObject.SetNamespace(namespace)
-	currentObject, err := GetCurrentObject(applyObject)
+	currentObject, err := components.GetCurrentObject(applyObject)
 	if err != nil {
 		return err
 	}
