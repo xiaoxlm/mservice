@@ -1,10 +1,9 @@
 package apply
 
 import (
-	networkingv1 "k8s.io/api/networking/v1"
-
 	"context"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"r.kubebuilder.io/pkg/utils"
@@ -15,8 +14,21 @@ func setNamespace(o metav1.Object, namespace string) {
 	o.SetNamespace(namespace)
 }
 
-func applyObject(ctx context.Context, c client.Client, namespace string, applyObject, currentObject client.Object) error {
-	setNamespace(applyObject, namespace)
+func GetCurrentObject(co client.Object) (client.Object, error) {
+	copyCO := co.DeepCopyObject()
+	current, err := meta.Accessor(copyCO)
+	if err != nil {
+		return nil, err
+	}
+	return current.(client.Object), nil
+}
+
+func Action(ctx context.Context, c client.Client, namespace string, applyObject client.Object) error {
+	applyObject.SetNamespace(namespace)
+	currentObject, err := GetCurrentObject(applyObject)
+	if err != nil {
+		return err
+	}
 
 	if err := c.Get(ctx, client.ObjectKeyFromObject(applyObject), currentObject); err != nil {
 		if apierrors.IsNotFound(err) {
@@ -28,21 +40,22 @@ func applyObject(ctx context.Context, c client.Client, namespace string, applyOb
 	return c.Patch(ctx, applyObject, utils.JSONPatch(types.MergePatchType))
 }
 
-func applyIngress(ctx context.Context, c client.Client, namespace string, ingress *networkingv1.Ingress) error {
-	setNamespace(ingress, namespace)
-
-	current := new(networkingv1.Ingress)
-
-	if err := c.Get(ctx, client.ObjectKeyFromObject(ingress), current); err != nil {
-		if apierrors.IsNotFound(err) {
-			return c.Create(ctx, ingress)
-		}
-		return err
-	}
-
-	return c.Patch(ctx, ingress, utils.JSONPatch(types.MergePatchType))
-}
+//func applyIngress(ctx context.Context, c client.Client, namespace string, ingress *networkingv1.Ingress) error {
+//	setNamespace(ingress, namespace)
 //
+//	current := new(networkingv1.Ingress)
+//
+//	if err := c.Get(ctx, client.ObjectKeyFromObject(ingress), current); err != nil {
+//		if apierrors.IsNotFound(err) {
+//			return c.Create(ctx, ingress)
+//		}
+//		return err
+//	}
+//
+//	return c.Patch(ctx, ingress, utils.JSONPatch(types.MergePatchType))
+//}
+
+
 //func applySecret(ctx context.Context, c client.Client, name, namespace string) error {
 //	imagePullSecret := new(utils.ImagePullSecret)
 //

@@ -18,8 +18,10 @@ package controllers
 
 import (
 	"context"
+	"fmt"
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
+	"r.kubebuilder.io/pkg/apply"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -57,7 +59,10 @@ func (r *MServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	// create
+	// apply
+	if err := r.apply(ctx, &msvc); err != nil {
+		return ctrl.Result{}, err
+	}
 	// status update
 
 	return ctrl.Result{}, nil
@@ -70,13 +75,48 @@ func (r *MServiceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
-func (r *MServiceReconciler) applyMService(ctx context.Context) {
-	// apply ingress
-	// apply service
-	// apply deployment
-	// apply secret
-}
+func (r *MServiceReconciler) apply(ctx context.Context, msvc *testv1.MService) error {
+	objects := convert(msvc)
 
-func (r *MServiceReconciler) applySecret(ctx context.Context) error {
+	if len(objects) < 1 {
+		return fmt.Errorf("objects is empty")
+	}
+
+	var errs []error
+
+	for _, o := range objects {
+		if err := apply.Action(ctx, r.Client, o.GetNamespace(), o); err != nil {
+			errs = append(errs, err)
+		}
+	}
+
+	if len(errs) > 0 {
+		errString := ""
+		for _, e := range errs {
+			errString += e.Error() + ";"
+		}
+		return fmt.Errorf(errString)
+	}
+
 	return nil
 }
+
+func convert(msvc *testv1.MService) []client.Object {
+	var ret []client.Object
+
+	// apply ingress
+	ingress := msvc.Spec.Ingress.Convert(&msvc.ObjectMeta, msvc.GetLabels(), msvc.GetAnnotations())
+	// apply service
+	service := msvc.Spec.Ports.Convert(&msvc.ObjectMeta, msvc.GetLabels(), msvc.GetAnnotations())
+	// apply deployment
+	deployment := msvc.Spec.MDeployment.Convert(&msvc.ObjectMeta, msvc.GetLabels(), msvc.GetAnnotations())
+	// apply secret
+	secret := msvc.Spec.Secret.Convert(&msvc.ObjectMeta, msvc.GetLabels(), msvc.GetAnnotations())
+
+	ret = append(ret, ingress, service, deployment, secret)
+
+	return ret
+}
+
+
+
