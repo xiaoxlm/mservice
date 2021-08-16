@@ -39,8 +39,6 @@ type MServiceSpec struct {
 type MServiceStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
-	ServiceExist            string `json:"serviceExist,omitempty"`
-	IngressExist            string `json:"ingressExist,omitempty"`
 	DeploymentStage         string `json:"deploymentStage,omitempty"`
 	DeploymentComments      string `json:"deploymentComments,omitempty"`
 	appsv1.DeploymentStatus `json:",inline"`

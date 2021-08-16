@@ -17,18 +17,27 @@ limitations under the License.
 package controllers
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"github.com/go-logr/logr"
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	testv1 "r.kubebuilder.io/api/v1"
 	"r.kubebuilder.io/pkg/apply"
 	"r.kubebuilder.io/pkg/components"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"time"
+)
 
-	testv1 "r.kubebuilder.io/api/v1"
+const (
+	APP_LABEL_KEY = "app"
 )
 
 // MServiceReconciler reconciles a MService object
@@ -88,6 +97,11 @@ func (r *MServiceReconciler) apply(ctx context.Context, msvc *testv1.MService) e
 	var errs []error
 
 	for _, o := range objectWithGVKs {
+		if err := controllerutil.SetControllerReference(msvc, o.Object, r.Scheme); err != nil {
+			errs = append(errs, err)
+			continue
+		}
+
 		if err := apply.Action(ctx, r.Client, o.Object.GetNamespace(), o.Object); err != nil {
 			errs = append(errs, err)
 		}
@@ -120,7 +134,115 @@ func (r *MServiceReconciler) updateStatus(ctx context.Context, msvc *testv1.MSer
 		}
 	}
 
+	// deployment
+	deployment := &appsv1.Deployment{}
+	if err := r.Client.Get(ctx, client.ObjectKeyFromObject(msvc), deployment); err != nil {
+		return err
+	}
+
+	podList := new(corev1.PodList)
+	if err := r.Client.List(
+		ctx, podList,
+		client.InNamespace(msvc.GetNamespace()),
+		client.MatchingLabels(map[string]string{
+			APP_LABEL_KEY: msvc.GetName(),
+		}),
+	); err != nil {
+		return err
+	}
+
+	msvc.Status.DeploymentStatus = deployment.Status
+	msvc.Status.DeploymentStage, msvc.Status.DeploymentComments = getDeploymentStage(&deployment.Status, podList.Items)
+
+	if err := r.Client.Status().Update(ctx, msvc); err != nil {
+		return nil
+	}
+
+	if msvc.Status.DeploymentStage == DeploymentStageProcessing {
+		for i := range deployment.Status.Conditions {
+			c := deployment.Status.Conditions[i]
+
+			idx := i
+
+			if c.Type == "Progressing" && c.Reason != "NewReplicaSetAvailable" {
+				go func() {
+					interval := 5 * time.Second
+
+					time.Sleep(interval)
+
+					deployment.Status.Conditions[idx].LastUpdateTime = metav1.Time{
+						Time: deployment.Status.Conditions[idx].LastUpdateTime.Add(interval),
+					}
+
+					err := r.Client.Status().Update(ctx, deployment)
+					if err != nil {
+						if !apierrors.IsConflict(err) {
+							r.Log.Error(err, "update deployment status failed")
+						}
+					}
+				}()
+			}
+		}
+	}
+
+	var cancelFunc func ()
+	ctx, cancelFunc = context.WithTimeout(ctx, 60 * time.Second)
+	defer cancelFunc()
+
+	for {
+		select {
+		case <- ctx.Done():
+
+		}
+	}
+
+
 	return nil
+}
+
+type DeploymentStage = string
+const (
+	DeploymentStageDone DeploymentStage = "DONE"
+	DeploymentStageFail DeploymentStage = "FAIL"
+	DeploymentStageProcessing DeploymentStage = "PROCESSING"
+)
+
+func getDeploymentStage(status *appsv1.DeploymentStatus, pods []corev1.Pod) (stage, comments string) {
+	if status.UnavailableReplicas == 0 && status.AvailableReplicas == status.Replicas {
+		return DeploymentStageDone, ""
+	}
+
+	for _, c := range status.Conditions {
+		if c.Type == appsv1.DeploymentReplicaFailure {
+			return DeploymentStageFail, ""
+		}
+	}
+
+	commentsBuffer := bytes.NewBuffer(nil)
+	stage = DeploymentStageProcessing
+
+	for _, pod := range pods {
+		if pod.Status.Phase == corev1.PodPending || pod.Status.Phase == corev1.PodFailed {
+			for i := range pod.Status.ContainerStatuses {
+				containerStatus := pod.Status.ContainerStatuses[i]
+				if !containerStatus.Ready {
+
+					//if containerStatus.State.Terminated != nil {}
+
+					if containerStatus.State.Waiting != nil {
+
+						if containerStatus.State.Waiting.Reason != "ContainerCreating" {
+							stage = DeploymentStageFail
+						}
+
+						_, _ = fmt.Fprintf(commentsBuffer, "[%[1]s] %[2]s", containerStatus.State.Waiting.Reason, containerStatus.State.Waiting.Message)
+					}
+				}
+			}
+		}
+	}
+
+	return stage, commentsBuffer.String()
 }
 
 type ObjectWithGVK struct {
