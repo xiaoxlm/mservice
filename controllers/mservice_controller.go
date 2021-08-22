@@ -17,14 +17,12 @@ limitations under the License.
 package controllers
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"github.com/go-logr/logr"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	testv1 "r.kubebuilder.io/api/v1"
@@ -75,7 +73,11 @@ func (r *MServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	if err := r.apply(ctx, &msvc); err != nil {
 		return ctrl.Result{}, err
 	}
+
 	// status update
+	if err := r.updateStatus(ctx, &msvc); err != nil {
+		return ctrl.Result{}, err
+	}
 
 	return ctrl.Result{}, nil
 }
@@ -84,6 +86,7 @@ func (r *MServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 func (r *MServiceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&testv1.MService{}).
+		Owns(&corev1.Pod{}).
 		Complete(r)
 }
 
@@ -97,6 +100,7 @@ func (r *MServiceReconciler) apply(ctx context.Context, msvc *testv1.MService) e
 	var errs []error
 
 	for _, o := range objectWithGVKs {
+		// owner
 		if err := controllerutil.SetControllerReference(msvc, o.Object, r.Scheme); err != nil {
 			errs = append(errs, err)
 			continue
@@ -119,8 +123,12 @@ func (r *MServiceReconciler) apply(ctx context.Context, msvc *testv1.MService) e
 }
 
 func (r *MServiceReconciler) updateStatus(ctx context.Context, msvc *testv1.MService) error {
+	// wait 5 second
+	time.Sleep(5 * time.Second)
+
 	objectWithGVKs := convert(msvc)
 
+	// check resource
 	for _, o := range objectWithGVKs {
 		currentObject, err := components.GetCurrentObject(o.Object)
 		if err != nil {
@@ -134,7 +142,7 @@ func (r *MServiceReconciler) updateStatus(ctx context.Context, msvc *testv1.MSer
 		}
 	}
 
-	// deployment
+	// update deployment status
 	deployment := &appsv1.Deployment{}
 	if err := r.Client.Get(ctx, client.ObjectKeyFromObject(msvc), deployment); err != nil {
 		return err
@@ -152,50 +160,12 @@ func (r *MServiceReconciler) updateStatus(ctx context.Context, msvc *testv1.MSer
 	}
 
 	msvc.Status.DeploymentStatus = deployment.Status
-	msvc.Status.DeploymentStage, msvc.Status.DeploymentComments = getDeploymentStage(&deployment.Status, podList.Items)
 
 	if err := r.Client.Status().Update(ctx, msvc); err != nil {
 		return nil
 	}
 
-	if msvc.Status.DeploymentStage == DeploymentStageProcessing {
-		for i := range deployment.Status.Conditions {
-			c := deployment.Status.Conditions[i]
-
-			idx := i
-
-			if c.Type == "Progressing" && c.Reason != "NewReplicaSetAvailable" {
-				go func() {
-					interval := 5 * time.Second
-
-					time.Sleep(interval)
-
-					deployment.Status.Conditions[idx].LastUpdateTime = metav1.Time{
-						Time: deployment.Status.Conditions[idx].LastUpdateTime.Add(interval),
-					}
-
-					err := r.Client.Status().Update(ctx, deployment)
-					if err != nil {
-						if !apierrors.IsConflict(err) {
-							r.Log.Error(err, "update deployment status failed")
-						}
-					}
-				}()
-			}
-		}
-	}
-
-	var cancelFunc func ()
-	ctx, cancelFunc = context.WithTimeout(ctx, 60 * time.Second)
-	defer cancelFunc()
-
-	for {
-		select {
-		case <- ctx.Done():
-
-		}
-	}
-
+	// check pod status for apply result
 
 	return nil
 }
@@ -206,44 +176,6 @@ const (
 	DeploymentStageFail DeploymentStage = "FAIL"
 	DeploymentStageProcessing DeploymentStage = "PROCESSING"
 )
-
-func getDeploymentStage(status *appsv1.DeploymentStatus, pods []corev1.Pod) (stage, comments string) {
-	if status.UnavailableReplicas == 0 && status.AvailableReplicas == status.Replicas {
-		return DeploymentStageDone, ""
-	}
-
-	for _, c := range status.Conditions {
-		if c.Type == appsv1.DeploymentReplicaFailure {
-			return DeploymentStageFail, ""
-		}
-	}
-
-	commentsBuffer := bytes.NewBuffer(nil)
-	stage = DeploymentStageProcessing
-
-	for _, pod := range pods {
-		if pod.Status.Phase == corev1.PodPending || pod.Status.Phase == corev1.PodFailed {
-			for i := range pod.Status.ContainerStatuses {
-				containerStatus := pod.Status.ContainerStatuses[i]
-				if !containerStatus.Ready {
-
-					//if containerStatus.State.Terminated != nil {}
-
-					if containerStatus.State.Waiting != nil {
-
-						if containerStatus.State.Waiting.Reason != "ContainerCreating" {
-							stage = DeploymentStageFail
-						}
-
-						_, _ = fmt.Fprintf(commentsBuffer, "[%[1]s] %[2]s", containerStatus.State.Waiting.Reason, containerStatus.State.Waiting.Message)
-					}
-				}
-			}
-		}
-	}
-
-	return stage, commentsBuffer.String()
-}
 
 type ObjectWithGVK struct {
 	Object client.Object
