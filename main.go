@@ -80,12 +80,19 @@ func main() {
 
 	if err = (&controllers.MServiceReconciler{
 		Client: mgr.GetClient(),
+		Log: ctrl.Log.WithName("controllers").WithName("mservice"),
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "MService")
 		os.Exit(1)
 	}
 	//+kubebuilder:scaffold:builder
+	if os.Getenv("ENABLE_WEBHOOKS") != "false" {
+		//if err = (&testv1.MService{}).SetupWebhookWithManager(mgr); err != nil {
+		//	setupLog.Error(err, "unable to create webhook", "webhook", "CronJob")
+		//	os.Exit(1)
+		//}
+	}
 
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
 		setupLog.Error(err, "unable to set up health check")
