@@ -46,7 +46,6 @@ func Action(ctx context.Context, c client.Client, namespace string, applyObject 
 //	return c.Patch(ctx, ingress, utils.JSONPatch(types.MergePatchType))
 //}
 
-
 //func applySecret(ctx context.Context, c client.Client, name, namespace string) error {
 //	imagePullSecret := new(utils.ImagePullSecret)
 //

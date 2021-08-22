@@ -10,15 +10,14 @@ import (
 )
 
 type MPort struct {
-	AppProtocol   string `json:"appProtocol,omitempty"`
-	Port          int32 `json:"port,omitempty"`
-	IsNodePort    bool `json:"isNodePort,omitempty"`
-	TargetPort uint16 `json:"targetPort,omitempty"`
-	Protocol      corev1.Protocol `json:"protocol,omitempty"`
+	AppProtocol string          `json:"appProtocol,omitempty"`
+	Port        int32           `json:"port,omitempty"`
+	IsNodePort  bool            `json:"isNodePort,omitempty"`
+	TargetPort  uint16          `json:"targetPort,omitempty"`
+	Protocol    corev1.Protocol `json:"protocol,omitempty"`
 }
 
 type MPorts []*MPort
-
 
 func (mp *MPorts) Convert(meta *metav1.ObjectMeta, labels, annotations map[string]string) (client.Object, schema.GroupVersionKind) {
 	s := new(corev1.Service)
@@ -33,7 +32,6 @@ func (mp *MPorts) Convert(meta *metav1.ObjectMeta, labels, annotations map[strin
 func (mp *MPorts) toServiceSpec() *corev1.ServiceSpec {
 	serviceSpec := new(corev1.ServiceSpec)
 	serviceSpec.Type = corev1.ServiceTypeClusterIP
-
 
 	for _, port := range *mp {
 		servicePort := corev1.ServicePort{}

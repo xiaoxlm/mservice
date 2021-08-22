@@ -6,7 +6,7 @@ import (
 )
 
 type Strategy struct {
-	Type  string
+	Type                string
 	RollingUpdateConfig map[string]string
 }
 
@@ -30,7 +30,7 @@ func ParseStrategy(strategyString string) (*Strategy, error) {
 		kvs := strings.Split(split[1], ",")
 
 		for _, kv := range kvs {
-			config := strings.Split(strings.Trim(kv," "), "=")
+			config := strings.Split(strings.Trim(kv, " "), "=")
 			if len(config) > 1 {
 				strategy.RollingUpdateConfig[config[0]] = config[1]
 			}

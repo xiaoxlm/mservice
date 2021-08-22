@@ -40,7 +40,7 @@ func (ms *MSecret) Convert(meta *metav1.ObjectMeta, labels, annotations map[stri
 	secret.SetLabels(labels)
 	secret.SetAnnotations(annotations)
 	secret.Type = corev1.SecretTypeDockerConfigJson
-	secret.Data = map[string][]byte {
+	secret.Data = map[string][]byte{
 		".dockerconfigjson": ms.DockerConfigJSON(),
 	}
 

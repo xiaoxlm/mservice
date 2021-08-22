@@ -23,7 +23,6 @@ func (j *jsonPath) Data(obj runtime.Object) ([]byte, error) {
 	return json.Marshal(obj)
 }
 
-
 type ImagePullSecret struct {
 	Name     string
 	Host     string

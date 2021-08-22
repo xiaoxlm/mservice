@@ -9,8 +9,8 @@ import (
 )
 
 type MDeployment struct {
-	Replicas *int32 `json:"replicas,omitempty"`
-	Strategy appv1.DeploymentStrategy `json:"strategy,omitempty"`
+	Replicas       *int32                   `json:"replicas,omitempty"`
+	Strategy       appv1.DeploymentStrategy `json:"strategy,omitempty"`
 	corev1.PodSpec `json:",inline"`
 }
 

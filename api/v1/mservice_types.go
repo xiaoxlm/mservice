@@ -29,9 +29,9 @@ type MServiceSpec struct {
 
 	//components.MDeployment `json:",inline"`
 
-	Ingress      *components.MIngress `json:"ingress,omitempty"`
-	Ports        *components.MPorts    `json:"ports,omitempty"`
-	Secret 		 *components.MSecret `json:"secret,omitempty"`
+	Ingress *components.MIngress `json:"ingress,omitempty"`
+	Ports   *components.MPorts   `json:"ports,omitempty"`
+	Secret  *components.MSecret  `json:"secret,omitempty"`
 }
 
 // MServiceStatus defines the observed state of MService

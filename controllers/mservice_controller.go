@@ -40,7 +40,7 @@ const (
 // MServiceReconciler reconciles a MService object
 type MServiceReconciler struct {
 	client.Client
-	Log logr.Logger
+	Log    logr.Logger
 	Scheme *runtime.Scheme
 }
 
@@ -170,15 +170,16 @@ func (r *MServiceReconciler) updateStatus(ctx context.Context, msvc *testv1.MSer
 }
 
 type DeploymentStage = string
+
 const (
-	DeploymentStageDone DeploymentStage = "DONE"
-	DeploymentStageFail DeploymentStage = "FAIL"
+	DeploymentStageDone       DeploymentStage = "DONE"
+	DeploymentStageFail       DeploymentStage = "FAIL"
 	DeploymentStageProcessing DeploymentStage = "PROCESSING"
 )
 
 type ObjectWithGVK struct {
 	Object client.Object
-	GVK schema.GroupVersionKind
+	GVK    schema.GroupVersionKind
 }
 
 func convert(msvc *testv1.MService) []ObjectWithGVK {
@@ -191,7 +192,7 @@ func convert(msvc *testv1.MService) []ObjectWithGVK {
 
 			ret = append(ret, ObjectWithGVK{
 				Object: o,
-				GVK: gvk,
+				GVK:    gvk,
 			})
 		}
 
@@ -201,5 +202,3 @@ func convert(msvc *testv1.MService) []ObjectWithGVK {
 	//return formatObjectWithGVK(msvc.Spec.Ingress, msvc.Spec.Ports, &msvc.Spec.MDeployment, msvc.Spec.Secret)
 	return formatObjectWithGVK(msvc.Spec.Ingress, msvc.Spec.Ports, msvc.Spec.Secret)
 }
-
-
