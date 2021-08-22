@@ -17,7 +17,6 @@ limitations under the License.
 package v1
 
 import (
-	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"r.kubebuilder.io/pkg/components"
 )
@@ -28,7 +27,7 @@ import (
 // MServiceSpec defines the desired state of MService
 type MServiceSpec struct {
 
-	components.MDeployment `json:",inline"`
+	//components.MDeployment `json:",inline"`
 
 	Ingress      *components.MIngress `json:"ingress,omitempty"`
 	Ports        *components.MPorts    `json:"ports,omitempty"`
@@ -39,9 +38,10 @@ type MServiceSpec struct {
 type MServiceStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
-	DeploymentStage         string `json:"deploymentStage,omitempty"`
-	DeploymentComments      string `json:"deploymentComments,omitempty"`
-	appsv1.DeploymentStatus `json:",inline"`
+	Stage string `json:"stage,omitempty"`
+	//DeploymentStage         string `json:"deploymentStage,omitempty"`
+	//DeploymentComments      string `json:"deploymentComments,omitempty"`
+	//appsv1.DeploymentStatus `json:",inline"`
 	//appsv1.DeploymentSpec
 }
 

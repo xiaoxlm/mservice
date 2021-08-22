@@ -20,7 +20,6 @@ import (
 	"context"
 	"fmt"
 	"github.com/go-logr/logr"
-	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -143,26 +142,26 @@ func (r *MServiceReconciler) updateStatus(ctx context.Context, msvc *testv1.MSer
 	}
 
 	// update deployment status
-	deployment := &appsv1.Deployment{}
-	if err := r.Client.Get(ctx, client.ObjectKeyFromObject(msvc), deployment); err != nil {
-		return err
-	}
-
-	podList := new(corev1.PodList)
-	if err := r.Client.List(
-		ctx, podList,
-		client.InNamespace(msvc.GetNamespace()),
-		client.MatchingLabels(map[string]string{
-			APP_LABEL_KEY: msvc.GetName(),
-		}),
-	); err != nil {
-		return err
-	}
-
-	msvc.Status.DeploymentStatus = deployment.Status
-
+	//deployment := &appsv1.Deployment{}
+	//if err := r.Client.Get(ctx, client.ObjectKeyFromObject(msvc), deployment); err != nil {
+	//	return err
+	//}
+	//
+	//podList := new(corev1.PodList)
+	//if err := r.Client.List(
+	//	ctx, podList,
+	//	client.InNamespace(msvc.GetNamespace()),
+	//	client.MatchingLabels(map[string]string{
+	//		APP_LABEL_KEY: msvc.GetName(),
+	//	}),
+	//); err != nil {
+	//	return err
+	//}
+	//
+	msvc.Status.Stage = "PROCESSING"
+	//
 	if err := r.Client.Status().Update(ctx, msvc); err != nil {
-		return nil
+		return err
 	}
 
 	// check pod status for apply result
@@ -199,7 +198,8 @@ func convert(msvc *testv1.MService) []ObjectWithGVK {
 		return ret
 	}
 
-	return formatObjectWithGVK(msvc.Spec.Ingress, msvc.Spec.Ports, &msvc.Spec.MDeployment, msvc.Spec.Secret)
+	//return formatObjectWithGVK(msvc.Spec.Ingress, msvc.Spec.Ports, &msvc.Spec.MDeployment, msvc.Spec.Secret)
+	return formatObjectWithGVK(msvc.Spec.Ingress, msvc.Spec.Ports, msvc.Spec.Secret)
 }
 
 
