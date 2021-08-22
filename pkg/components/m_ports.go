@@ -10,11 +10,11 @@ import (
 )
 
 type MPort struct {
-	AppProtocol   string
-	Port          int32
-	IsNodePort    bool
-	TargetPort uint16
-	Protocol      corev1.Protocol
+	AppProtocol   string `json:"appProtocol,omitempty"`
+	Port          int32 `json:"port,omitempty"`
+	IsNodePort    bool `json:"isNodePort,omitempty"`
+	TargetPort uint16 `json:"targetPort,omitempty"`
+	Protocol      corev1.Protocol `json:"protocol,omitempty"`
 }
 
 type MPorts []*MPort

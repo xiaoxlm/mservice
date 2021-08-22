@@ -10,10 +10,10 @@ import (
 )
 
 type MIngressSpec struct {
-	Scheme string
-	Host   string
-	Path   string
-	Port   uint16
+	Scheme string `json:"scheme,omitempty"`
+	Host   string `json:"host,omitempty"`
+	Path   string `json:"path,omitempty"`
+	Port   uint16 `json:"port,omitempty"`
 }
 
 type MIngress []*MIngressSpec

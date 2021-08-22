@@ -9,11 +9,11 @@ import (
 )
 
 type MSecret struct {
-	Name     string
-	Host     string
-	Username string
-	Password string
-	Prefix   string
+	Name     string `json:"name,omitempty"`
+	Host     string `json:"host,omitempty"`
+	Username string `json:"username,omitempty"`
+	Password string `json:"password,omitempty"`
+	Prefix   string `json:"prefix,omitempty"`
 }
 
 type AuthConfig struct {
