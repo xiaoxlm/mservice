@@ -36,7 +36,9 @@ func (ms *MSecret) DockerConfigJSON() []byte {
 
 func (ms *MSecret) Convert(meta *metav1.ObjectMeta, labels, annotations map[string]string) (client.Object, schema.GroupVersionKind) {
 	secret := new(corev1.Secret)
-	secret.ObjectMeta = *meta
+	secret.SetName(meta.GetName())
+	secret.SetNamespace(meta.GetNamespace())
+	//secret.ObjectMeta = *meta
 	secret.SetLabels(labels)
 	secret.SetAnnotations(annotations)
 	secret.Type = corev1.SecretTypeDockerConfigJson
@@ -44,5 +46,9 @@ func (ms *MSecret) Convert(meta *metav1.ObjectMeta, labels, annotations map[stri
 		".dockerconfigjson": ms.DockerConfigJSON(),
 	}
 
-	return secret, secret.GroupVersionKind()
+	return secret, schema.GroupVersionKind{
+		Group:   "",
+		Version: "v1",
+		Kind:    "Secret",
+	}
 }

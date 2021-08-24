@@ -16,28 +16,38 @@ type MIngressSpec struct {
 	Port   uint16 `json:"port,omitempty"`
 }
 
-type MIngress []*MIngressSpec
+type MIngress []MIngressSpec
 
 func (mi *MIngress) Convert(meta *metav1.ObjectMeta, labels, annotations map[string]string) (client.Object, schema.GroupVersionKind) {
 
 	ingress := new(networking.Ingress)
-	ingress.ObjectMeta = *meta
+	ingress.SetName(meta.GetName())
+	ingress.SetNamespace(meta.GetNamespace())
+	//ingress.ObjectMeta = *meta
 	ingress.SetLabels(labels)
 	ingress.SetAnnotations(annotations)
 
 	for _, i := range *mi {
-		rule := networking.IngressRule{}
-		rule.Host = i.Host
-
 		path := networking.HTTPIngressPath{}
 		path.Path = i.Path
-		path.Backend.ServiceName = ingress.Name
+		path.Backend.ServiceName = ingress.GetName()
+		if i.Port < 1 {
+			i.Port = 80
+		}
 		path.Backend.ServicePort = intstr.FromInt(int(i.Port))
+
+		rule := networking.IngressRule{}
+		rule.Host = i.Host
+		rule.IngressRuleValue.HTTP = new(networking.HTTPIngressRuleValue)
 		rule.IngressRuleValue.HTTP.Paths = []networking.HTTPIngressPath{path}
 
 		ingress.Spec.Rules = append(ingress.Spec.Rules, rule)
 	}
-	return ingress, ingress.GroupVersionKind()
+	return ingress, schema.GroupVersionKind{
+		Group:   "extensions",
+		Version: "v1beta1",
+		Kind:    "Ingress",
+	}
 }
 
 //func (mi MIngress) String() string {

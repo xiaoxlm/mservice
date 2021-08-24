@@ -200,5 +200,9 @@ func convert(msvc *testv1.MService) []ObjectWithGVK {
 	}
 
 	//return formatObjectWithGVK(msvc.Spec.Ingress, msvc.Spec.Ports, &msvc.Spec.MDeployment, msvc.Spec.Secret)
-	return formatObjectWithGVK(msvc.Spec.Ingress, msvc.Spec.Ports, msvc.Spec.Secret)
+
+	var ingresses components.MIngress = msvc.Spec.Ingress
+	var ports components.MPorts = msvc.Spec.Ports
+
+	return formatObjectWithGVK(&ingresses, &ports, msvc.Spec.Secret)
 }

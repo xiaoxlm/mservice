@@ -10,6 +10,7 @@ spec:
       scheme: http
       host: www.baidu.com
       path: /
+      port: 80
   ports:
     -
       port: 80

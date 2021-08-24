@@ -51,6 +51,7 @@ spec:
                 type: array
               ports:
                 items:
+                  description: service
                   properties:
                     appProtocol:
                       type: string

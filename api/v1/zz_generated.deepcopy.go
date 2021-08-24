@@ -89,33 +89,13 @@ func (in *MServiceSpec) DeepCopyInto(out *MServiceSpec) {
 	*out = *in
 	if in.Ingress != nil {
 		in, out := &in.Ingress, &out.Ingress
-		*out = new(components.MIngress)
-		if **in != nil {
-			in, out := *in, *out
-			*out = make([]*components.MIngressSpec, len(*in))
-			for i := range *in {
-				if (*in)[i] != nil {
-					in, out := &(*in)[i], &(*out)[i]
-					*out = new(components.MIngressSpec)
-					**out = **in
-				}
-			}
-		}
+		*out = make([]components.MIngressSpec, len(*in))
+		copy(*out, *in)
 	}
 	if in.Ports != nil {
 		in, out := &in.Ports, &out.Ports
-		*out = new(components.MPorts)
-		if **in != nil {
-			in, out := *in, *out
-			*out = make([]*components.MPort, len(*in))
-			for i := range *in {
-				if (*in)[i] != nil {
-					in, out := &(*in)[i], &(*out)[i]
-					*out = new(components.MPort)
-					**out = **in
-				}
-			}
-		}
+		*out = make([]components.MPort, len(*in))
+		copy(*out, *in)
 	}
 	if in.Secret != nil {
 		in, out := &in.Secret, &out.Secret

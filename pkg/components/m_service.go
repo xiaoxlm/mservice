@@ -9,6 +9,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+// service
 type MPort struct {
 	AppProtocol string          `json:"appProtocol,omitempty"`
 	Port        int32           `json:"port,omitempty"`
@@ -17,16 +18,23 @@ type MPort struct {
 	Protocol    corev1.Protocol `json:"protocol,omitempty"`
 }
 
-type MPorts []*MPort
+type MPorts []MPort
 
 func (mp *MPorts) Convert(meta *metav1.ObjectMeta, labels, annotations map[string]string) (client.Object, schema.GroupVersionKind) {
 	s := new(corev1.Service)
-	s.ObjectMeta = *meta
+	s.SetName(meta.GetName())
+	s.SetNamespace(meta.GetNamespace())
+	//s.ObjectMeta = *meta
+
 	s.Spec = *mp.toServiceSpec()
 	s.Spec.Selector = map[string]string{
 		"app": s.ObjectMeta.Name,
 	}
-	return s, s.GroupVersionKind()
+	return s, schema.GroupVersionKind{
+		Group:   "",
+		Version: "v1",
+		Kind:    "Service",
+	}
 }
 
 func (mp *MPorts) toServiceSpec() *corev1.ServiceSpec {
